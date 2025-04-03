@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Comentários</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: center;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .comment-section {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .comment {
+            background: #e9ecef;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Área de Comentários</h2>
+
+        <!-- Campos para adicionar um comentário -->
+        <input type="text" id="username" placeholder="Seu nome">
+        <input type="password" id="userPassword" placeholder="Senha do dia">
+        <textarea id="comment" placeholder="Escreva seu comentário..." rows="3"></textarea>
+        <button onclick="submitComment()">Enviar Comentário</button>
+
+        <div class="comment-section" id="comments-section">
+            <h3>Comentários:</h3>
+        </div>
+    </div>
+
+    <!-- Área de Administrador -->
+    <div class="container">
+        <h2>Admin: Definir Senha do Dia</h2>
+        <input type="password" id="adminPassword" placeholder="Senha de Administrador">
+        <button onclick="setDailyPassword()">Definir Senha</button>
+    </div>
+
+    <!-- Firebase e JavaScript -->
+    <script type="module">
+        // Importa os módulos do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Configuração do Firebase (substitua pelos seus dados)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBn5DP0PwYQpfOhNAGUtVkwfPeCg-4dtaA",
+            authDomain: "sistema-de-comentarios-e1724.firebaseapp.com",
+            databaseURL: "https://sistema-de-comentarios-e1724-default-rtdb.firebaseio.com",
+            projectId: "sistema-de-comentarios-e1724",
+            storageBucket: "sistema-de-comentarios-e1724.firebasestorage.app",
+            messagingSenderId: "606085423608",
+            appId: "1:606085423608:web:e088b99295c360cb98360d",
+            measurementId: "G-6Y450HE312"
+        };
+
+        // Inicializa o Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Função para definir a Senha do Dia (somente o admin pode mudar)
+        function setDailyPassword() {
+            let adminPass = document.getElementById("adminPassword").value;
+            const adminMasterPassword = "admin123"; // Troque por uma senha segura
+
+            if (adminPass !== adminMasterPassword) {
+                alert("Senha do administrador incorreta!");
+                return;
+            }
+
+            let dailyPassword = prompt("Digite a nova senha do dia:");
+            if (!dailyPassword) return;
+
+            // Salva a senha do dia no Firebase
+            set(ref(db, "senhaDia"), { senha: dailyPassword })
+                .then(() => alert("Senha do dia definida com sucesso!"))
+                .catch(error => alert("Erro ao salvar senha: " + error.message));
+        }
+
+        // Função para verificar a senha antes de permitir comentários
+        async function submitComment() {
+            let username = document.getElementById("username").value;
+            let userPassword = document.getElementById("userPassword").value;
+            let comment = document.getElementById("comment").value;
+
+            // Obtém a senha do dia no Firebase
+            const dbRef = ref(db);
+            let snapshot = await get(child(dbRef, "senhaDia"));
+
+            if (!snapshot.exists()) {
+                alert("Nenhuma senha do dia definida!");
+                return;
+            }
+
+            let senhaDoDia = snapshot.val().senha;
+
+            if (userPassword !== senhaDoDia) {
+                alert("Senha do dia incorreta!");
+                return;
+            }
+
+            if (username.trim() === "" || comment.trim() === "") {
+                alert("Preencha todos os campos!");
+                return;
+            }
+
+            // Exibir o comentário na página
+            let commentSection = document.getElementById("comments-section");
+            let newComment = document.createElement("div");
+            newComment.classList.add("comment");
+            newComment.innerHTML = `<strong>${username}:</strong> ${comment}`;
+            commentSection.appendChild(newComment);
+
+            // Limpar os campos
+            document.getElementById("username").value = "";
+            document.getElementById("userPassword").value = "";
+            document.getElementById("comment").value = "";
+        }
+    </script>
+
+</body>
+</html>
